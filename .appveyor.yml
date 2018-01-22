@@ -7,34 +7,38 @@ environment:
           PHP_VC: 11
           PHP_MAJOR: 5
           PHP_TYPE: "Win32"
-        - PHP_TARGET: 5.5
-          PHP_VC: 11
-          PHP_MAJOR: 5
-          PHP_TYPE: "nts-Win32"
-        - PHP_TARGET: 5.6
-          PHP_VC: 11
-          PHP_MAJOR: 5
-          PHP_TYPE: "Win32"
-        - PHP_TARGET: 5.6
-          PHP_VC: 11
-          PHP_MAJOR: 5
-          PHP_TYPE: "nts-Win32"
-        - PHP_TARGET: 7.0
-          PHP_VC: 14
+        # - PHP_TARGET: 5.5
+        #   PHP_VC: 11
+        #   PHP_MAJOR: 5
+        #   PHP_TYPE: "nts-Win32"
+        # - PHP_TARGET: 5.6
+        #   PHP_VC: 11
+        #   PHP_MAJOR: 5
+        #   PHP_TYPE: "Win32"
+        # - PHP_TARGET: 5.6
+        #   PHP_VC: 11
+        #   PHP_MAJOR: 5
+        #   PHP_TYPE: "nts-Win32"
+        # - PHP_TARGET: 7.0
+        #   PHP_VC: 14
+        #   PHP_MAJOR: 7
+        #   PHP_TYPE: "Win32"
+        # - PHP_TARGET: 7.0
+        #   PHP_VC: 14
+        #   PHP_MAJOR: 7
+        #   PHP_TYPE: "nts-Win32"
+        # - PHP_TARGET: 7.1
+        #   PHP_VC: 14
+        #   PHP_MAJOR: 7
+        #   PHP_TYPE: "Win32"
+        # - PHP_TARGET: 7.1
+        #   PHP_VC: 14
+        #   PHP_MAJOR: 7
+        #   PHP_TYPE: "nts-Win32"
+        - PHP_TARGET: 7.2
+          PHP_VC: 15
           PHP_MAJOR: 7
           PHP_TYPE: "Win32"
-        - PHP_TARGET: 7.0
-          PHP_VC: 14
-          PHP_MAJOR: 7
-          PHP_TYPE: "nts-Win32"
-        - PHP_TARGET: 7.1
-          PHP_VC: 14
-          PHP_MAJOR: 7
-          PHP_TYPE: "Win32"
-        - PHP_TARGET: 7.1
-          PHP_VC: 14
-          PHP_MAJOR: 7
-          PHP_TYPE: "nts-Win32"
     NO_INTERACTION: 1
     PHP_SDK: c:\php-sdk
     PHP_DEVPACK: c:\php-devpack
@@ -47,18 +51,18 @@ matrix:
 clone_depth: 1
 clone_folder: c:\projects\parser
 
-only_commits:
-    message: /\[win build\]/
+# only_commits:
+#     message: /\[win build\]/
 
-branches:
-    only:
-        - master
-        - development
+# branches:
+#     only:
+#         - master
+#         - development
 init:
     - SET PATH=C:\Program Files (x86)\MSBuild\%PHP_VC%.0\Bin;C:\Program Files\OpenSSL;C:\php;C:\php-sdk\bin;C:\php-devpack;%PATH%
     - SET PATH=C:\Program Files (x86)\Microsoft Visual Studio %PHP_VC%.0\VC;C:\Program Files (x86)\Microsoft Visual Studio %PHP_VC%.0\VC\bin;%PATH%
     - SET ANSICON=121x90 (121x90)
-    - ps: IF ($env:APPVEYOR_REPO_BRANCH -eq "development") {$env:APPVEYOR_CACHE_SKIP_SAVE = "true"}
+    - ps: If ($env:APPVEYOR_REPO_BRANCH -eq "development") { $env:APPVEYOR_CACHE_SKIP_SAVE = "true" }
 
 os: Windows Server 2012 R2
 
@@ -86,7 +90,7 @@ install:
                 $env:RELEASE_FOLDER="Release_TS"
                 $env:PHP_CONFIGURE_FLAGS="--disable-all --enable-cli --enable-zephir_parser=shared"
             }
-        } else {
+        } Else {
             If ($env:PHP_TYPE -Match "nts-Win32") {
                 $env:RELEASE_FOLDER="x64\Release"
                 $env:PHP_CONFIGURE_FLAGS="--disable-all --enable-cli --enable-zephir_parser=shared --disable-zts"
@@ -95,11 +99,15 @@ install:
                 $env:PHP_CONFIGURE_FLAGS="--disable-all --enable-cli --enable-zephir_parser=shared"
             }
         }
+
         If ($env:PHP_VC -eq '11') {
             $env:VSCOMNTOOLS=$env:VS110COMNTOOLS
-        } elseif ($env:PHP_VC -eq '14') {
+        } Elseif ($env:PHP_VC -eq '14') {
+            $env:VSCOMNTOOLS=$env:VS140COMNTOOLS
+        } Elseif ($env:PHP_VC -eq '15') {
             $env:VSCOMNTOOLS=$env:VS140COMNTOOLS
         }
+
         If ($env:PLATFORM -eq 'x64') {
             $env:ARCH='x86_amd64'
         } Else {
