@@ -1,19 +1,15 @@
-
-/*
-  +--------------------------------------------------------------------------+
-  | Zephir Parser                                                            |
-  | Copyright (c) 2013-present Zephir Team (https://zephir-lang.com/)        |
-  |                                                                          |
-  | This source file is subject the MIT license, that is bundled with this   |
-  | package in the file LICENSE, and is available through the world-wide-web |
-  | at the following url: http://zephir-lang.com/license.html                |
-  +--------------------------------------------------------------------------+
-*/
-
-/* $Id$ */
+/* zephir_parser.c
+ *
+ * This file is part of the Zephir Parser.
+ *
+ * (c) Zephir Team <team@zephir-lang.com>
+ *
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+# include "config.h"
 #endif
 
 #include <php.h>
@@ -32,34 +28,22 @@ static PHP_FUNCTION(zephir_parse_file)
 	size_t content_len = 0;
 	char *content = NULL;
 	char *filepath = NULL;
-#if PHP_VERSION_ID >= 70000
 	zval error_msg;
 	zval ret;
 	zval *e = &error_msg;
 	zval *r = &ret;
-#else
-	zval *error_msg;
-	zval *e;
-	zval *ret;
-	zval *r;
-#endif
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &content, &content_len, &filepath, &filepath_len) == FAILURE) {
 		RETURN_FALSE;
 	}
 
-#if PHP_VERSION_ID < 70000
-	MAKE_STD_ZVAL(ret);
-	MAKE_STD_ZVAL(error_msg);
-	e = error_msg;
-	r = ret;
-#endif
 	ZVAL_NULL(e);
+	ZVAL_NULL(r);
 	xx_parse_program(r, content, content_len, filepath, e);
 
 	if (Z_TYPE_P(e) == IS_ARRAY) {
 		zval_ptr_dtor(&ret);
-		RETURN_ZVAL(e, 1, 0);
+		RETURN_ZVAL(e, 0, 0);
 	}
 
 	assert(Z_TYPE_P(r) == IS_ARRAY);
@@ -119,8 +103,8 @@ zend_module_entry zephir_parser_module_entry = {
 	zephir_parser_functions,
 	PHP_MINIT(zephir_parser),
 	PHP_MSHUTDOWN(zephir_parser),
-	NULL, /* RINIT */
-	NULL, /* RSHUTDOWN */
+	NULL,
+	NULL,
 	PHP_MINFO(zephir_parser),
 	PHP_ZEPHIR_PARSER_VERSION,
 	STANDARD_MODULE_PROPERTIES
@@ -129,9 +113,9 @@ zend_module_entry zephir_parser_module_entry = {
 
 /* implement standard "stub" routine to introduce ourselves to Zend */
 #ifdef COMPILE_DL_ZEPHIR_PARSER
-#if defined(ZTS) && PHP_VERSION_ID >= 70000
-ZEND_TSRMLS_CACHE_DEFINE();
-#endif
+# ifdef ZTS
+ZEND_TSRMLS_CACHE_DEFINE()
+# endif
 ZEND_GET_MODULE(zephir_parser)
 #endif
 

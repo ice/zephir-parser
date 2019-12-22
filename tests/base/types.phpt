@@ -1,13 +1,66 @@
 --TEST--
 Tests recognizing data types
 --SKIPIF--
-<?php if (!extension_loaded("Zephir Parser")) print "skip The zephir_parser extension is not loaded"; ?>
+<?php include(__DIR__ . '/../skipif.inc'); ?>
 --FILE--
-<?php require(__DIR__ . "/../zephir_parser_test.inc");
+<?php
 
-$ir = parse_file("base/types.zep");
+$code =<<<ZEP
+namespace Example;
+
+class Test
+{
+    public t_int1 =        10;
+    public t_int2 =      -100;
+    public t_int3 =  0xFFFFFF;
+    public t_int4 = -0x000000;
+
+    public t_double1 =    0.000001;
+    public t_double1 =   -0.000001;
+    public t_double1 =  909.999999;
+    public t_double1 = -909.999999;
+
+    public t_char1 = 'a';
+
+    public t_const1 = FOOBAR;
+
+    public function someString()
+    {
+        return "hello";
+    }
+
+    public function someIString()
+    {
+        return ~"hello";
+    }
+}
+ZEP;
+
+$ir = zephir_parse_file($code, '(eval code)');
+
+$properties = $ir[1]["definition"]["properties"];
+foreach ($properties as $property) {
+	printf("%s %s %s %s\n",
+		implode(",", $property["visibility"]),
+		$property["name"],
+		$property["default"]["type"],
+		$property["default"]["value"]
+	);
+}
+
 var_dump($ir);
---EXPECTF--
+?>
+--EXPECT--
+public t_int1 int 10
+public t_int2 int -100
+public t_int3 int 0xFFFFFF
+public t_int4 int -0x000000
+public t_double1 double 0.000001
+public t_double1 double -0.000001
+public t_double1 double 909.999999
+public t_double1 double -909.999999
+public t_char1 char a
+public t_const1 constant FOOBAR
 array(2) {
   [0]=>
   array(5) {
@@ -16,7 +69,7 @@ array(2) {
     ["name"]=>
     string(7) "Example"
     ["file"]=>
-    string(%d) "%s/tests/data/base/types.zep"
+    string(11) "(eval code)"
     ["line"]=>
     int(3)
     ["char"]=>
@@ -35,7 +88,7 @@ array(2) {
     ["definition"]=>
     array(5) {
       ["properties"]=>
-      array(9) {
+      array(10) {
         [0]=>
         array(7) {
           ["visibility"]=>
@@ -54,18 +107,18 @@ array(2) {
             ["value"]=>
             string(2) "10"
             ["file"]=>
-            string(%d) "%s/tests/data/base/types.zep"
+            string(11) "(eval code)"
             ["line"]=>
             int(5)
             ["char"]=>
-            int(27)
+            int(30)
           }
           ["file"]=>
-          string(%d) "%s/tests/data/base/types.zep"
+          string(11) "(eval code)"
           ["line"]=>
           int(6)
           ["char"]=>
-          int(7)
+          int(10)
         }
         [1]=>
         array(7) {
@@ -85,18 +138,18 @@ array(2) {
             ["value"]=>
             string(4) "-100"
             ["file"]=>
-            string(%d) "%s/tests/data/base/types.zep"
+            string(11) "(eval code)"
             ["line"]=>
             int(6)
             ["char"]=>
-            int(27)
+            int(30)
           }
           ["file"]=>
-          string(%d) "%s/tests/data/base/types.zep"
+          string(11) "(eval code)"
           ["line"]=>
           int(7)
           ["char"]=>
-          int(7)
+          int(10)
         }
         [2]=>
         array(7) {
@@ -116,18 +169,18 @@ array(2) {
             ["value"]=>
             string(8) "0xFFFFFF"
             ["file"]=>
-            string(%d) "%s/tests/data/base/types.zep"
+            string(11) "(eval code)"
             ["line"]=>
             int(7)
             ["char"]=>
-            int(27)
+            int(30)
           }
           ["file"]=>
-          string(%d) "%s/tests/data/base/types.zep"
+          string(11) "(eval code)"
           ["line"]=>
           int(8)
           ["char"]=>
-          int(7)
+          int(10)
         }
         [3]=>
         array(7) {
@@ -147,18 +200,18 @@ array(2) {
             ["value"]=>
             string(9) "-0x000000"
             ["file"]=>
-            string(%d) "%s/tests/data/base/types.zep"
+            string(11) "(eval code)"
             ["line"]=>
             int(8)
             ["char"]=>
-            int(27)
+            int(30)
           }
           ["file"]=>
-          string(%d) "%s/tests/data/base/types.zep"
+          string(11) "(eval code)"
           ["line"]=>
           int(10)
           ["char"]=>
-          int(7)
+          int(10)
         }
         [4]=>
         array(7) {
@@ -178,18 +231,18 @@ array(2) {
             ["value"]=>
             string(8) "0.000001"
             ["file"]=>
-            string(%d) "%s/tests/data/base/types.zep"
+            string(11) "(eval code)"
             ["line"]=>
             int(10)
             ["char"]=>
-            int(32)
+            int(35)
           }
           ["file"]=>
-          string(%d) "%s/tests/data/base/types.zep"
+          string(11) "(eval code)"
           ["line"]=>
           int(11)
           ["char"]=>
-          int(7)
+          int(10)
         }
         [5]=>
         array(7) {
@@ -209,18 +262,18 @@ array(2) {
             ["value"]=>
             string(9) "-0.000001"
             ["file"]=>
-            string(%d) "%s/tests/data/base/types.zep"
+            string(11) "(eval code)"
             ["line"]=>
             int(11)
             ["char"]=>
-            int(32)
+            int(35)
           }
           ["file"]=>
-          string(%d) "%s/tests/data/base/types.zep"
+          string(11) "(eval code)"
           ["line"]=>
           int(12)
           ["char"]=>
-          int(7)
+          int(10)
         }
         [6]=>
         array(7) {
@@ -240,18 +293,18 @@ array(2) {
             ["value"]=>
             string(10) "909.999999"
             ["file"]=>
-            string(%d) "%s/tests/data/base/types.zep"
+            string(11) "(eval code)"
             ["line"]=>
             int(12)
             ["char"]=>
-            int(32)
+            int(35)
           }
           ["file"]=>
-          string(%d) "%s/tests/data/base/types.zep"
+          string(11) "(eval code)"
           ["line"]=>
           int(13)
           ["char"]=>
-          int(7)
+          int(10)
         }
         [7]=>
         array(7) {
@@ -271,18 +324,18 @@ array(2) {
             ["value"]=>
             string(11) "-909.999999"
             ["file"]=>
-            string(%d) "%s/tests/data/base/types.zep"
+            string(11) "(eval code)"
             ["line"]=>
             int(13)
             ["char"]=>
-            int(32)
+            int(35)
           }
           ["file"]=>
-          string(%d) "%s/tests/data/base/types.zep"
+          string(11) "(eval code)"
           ["line"]=>
           int(15)
           ["char"]=>
-          int(7)
+          int(10)
         }
         [8]=>
         array(7) {
@@ -302,18 +355,49 @@ array(2) {
             ["value"]=>
             string(1) "a"
             ["file"]=>
-            string(%d) "%s/tests/data/base/types.zep"
+            string(11) "(eval code)"
             ["line"]=>
             int(15)
             ["char"]=>
-            int(21)
+            int(24)
           }
           ["file"]=>
-          string(%d) "%s/tests/data/base/types.zep"
+          string(11) "(eval code)"
           ["line"]=>
           int(17)
           ["char"]=>
-          int(7)
+          int(10)
+        }
+        [9]=>
+        array(7) {
+          ["visibility"]=>
+          array(1) {
+            [0]=>
+            string(6) "public"
+          }
+          ["type"]=>
+          string(8) "property"
+          ["name"]=>
+          string(8) "t_const1"
+          ["default"]=>
+          array(5) {
+            ["type"]=>
+            string(8) "constant"
+            ["value"]=>
+            string(6) "FOOBAR"
+            ["file"]=>
+            string(11) "(eval code)"
+            ["line"]=>
+            int(17)
+            ["char"]=>
+            int(29)
+          }
+          ["file"]=>
+          string(11) "(eval code)"
+          ["line"]=>
+          int(19)
+          ["char"]=>
+          int(10)
         }
       }
       ["methods"]=>
@@ -342,28 +426,28 @@ array(2) {
                 ["value"]=>
                 string(5) "hello"
                 ["file"]=>
-                string(%d) "%s/tests/data/base/types.zep"
+                string(11) "(eval code)"
                 ["line"]=>
-                int(19)
+                int(21)
                 ["char"]=>
-                int(15)
+                int(21)
               }
               ["file"]=>
-              string(%d) "%s/tests/data/base/types.zep"
+              string(11) "(eval code)"
               ["line"]=>
-              int(20)
+              int(22)
               ["char"]=>
-              int(2)
+              int(5)
             }
           }
           ["file"]=>
-          string(%d) "%s/tests/data/base/types.zep"
+          string(11) "(eval code)"
           ["line"]=>
-          int(17)
+          int(19)
           ["last-line"]=>
-          int(22)
+          int(24)
           ["char"]=>
-          int(16)
+          int(19)
         }
         [1]=>
         array(8) {
@@ -389,39 +473,39 @@ array(2) {
                 ["value"]=>
                 string(5) "hello"
                 ["file"]=>
-                string(%d) "%s/tests/data/base/types.zep"
+                string(11) "(eval code)"
                 ["line"]=>
-                int(24)
+                int(26)
                 ["char"]=>
-                int(16)
+                int(22)
               }
               ["file"]=>
-              string(%d) "%s/tests/data/base/types.zep"
+              string(11) "(eval code)"
               ["line"]=>
-              int(25)
+              int(27)
               ["char"]=>
-              int(2)
+              int(5)
             }
           }
           ["file"]=>
-          string(%d) "%s/tests/data/base/types.zep"
+          string(11) "(eval code)"
           ["line"]=>
-          int(22)
+          int(24)
           ["last-line"]=>
-          int(26)
+          int(28)
           ["char"]=>
-          int(16)
+          int(19)
         }
       }
       ["file"]=>
-      string(%d) "%s/tests/data/base/types.zep"
+      string(11) "(eval code)"
       ["line"]=>
       int(3)
       ["char"]=>
       int(5)
     }
     ["file"]=>
-    string(%d) "%s/tests/data/base/types.zep"
+    string(11) "(eval code)"
     ["line"]=>
     int(3)
     ["char"]=>

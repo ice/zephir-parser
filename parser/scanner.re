@@ -1,27 +1,31 @@
+/* scanner.re
+ *
+ * This file is part of the Zephir Parser.
+ *
+ * (c) Zephir Team <team@zephir-lang.com>
+ *
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
 
-/*
-  +--------------------------------------------------------------------------+
-  | Zephir Parser                                                            |
-  | Copyright (c) 2013-present Zephir Team (https://zephir-lang.com/)        |
-  |                                                                          |
-  | This source file is subject the MIT license, that is bundled with this   |
-  | package in the file LICENSE, and is available through the world-wide-web |
-  | at the following url: http://zephir-lang.com/license.html                |
-  +--------------------------------------------------------------------------+
-*/
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
 #include <php.h>
+
 #include "xx.h"
 #include "scanner.h"
 
+// for re2c
 #define YYCTYPE unsigned char
-#define YYCURSOR (s->start)
-#define YYLIMIT (s->end)
-#define YYMARKER qm
+#define YYCURSOR (s->cursor)
+#define YYLIMIT (s->limit)
+#define YYMARKER (s->marker)
 
 int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 
-	char *start = YYCURSOR, *qm;
+	char *start = YYCURSOR;
 	int status = XX_SCANNER_RETCODE_IMPOSSIBLE;
 	int is_constant = 0, j;
 
@@ -507,33 +511,35 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 			return 0;
 		}
 
-		DCOMMENT = ("/**"([^*]+|[*]+[^/*])*[*]*"*/");
-		DCOMMENT {
-			start++;
-			token->opcode = XX_T_COMMENT;
-			token->value = estrndup(start, YYCURSOR - start - 1);
-			token->len = YYCURSOR - start - 1;
-			{
-				int k, ch = s->active_char;
-				for (k = 0; k < (token->len - 1); k++) {
-					if (token->value[k] == '\n') {
-						ch = 1;
-						s->active_line++;
-					} else {
-						ch++;
-					}
-				}
-				s->active_char = ch;
-			}
-			return 0;
-		}
-
-		COMMENT = ("/*"([^*]+|[*]+[^/*])*[*]*"*/");
+		COMMENT = ("/*" ([^*]+|[*]+[^/*])* [*]* "*/");
 		COMMENT {
-			token->opcode = XX_T_IGNORE;
-			token->value = estrndup(start, YYCURSOR - start - 1);
-			token->len = YYCURSOR - start - 1;
-			{
+			int has_data = 0;
+			if (YYCURSOR - start == 5) {
+				// Empty dockblocks like /***/
+				token->opcode = XX_T_COMMENT;
+			} else if (YYCURSOR - start == 4) {
+				// Empty comment like /**/
+				token->opcode = XX_T_IGNORE;
+			} else if (start[2] == '*' && start[YYCURSOR - start - 2] == '*') {
+				token->opcode = XX_T_COMMENT;
+			} else {
+				// C comments like /* ... */
+				token->opcode = XX_T_IGNORE;
+			}
+
+			if (token->opcode == XX_T_COMMENT && YYCURSOR - start > 5) {
+				has_data = 1;
+				start++;
+			}
+
+			if (token->opcode == XX_T_IGNORE && YYCURSOR - start > 4) {
+				has_data = 1;
+			}
+
+			if (has_data == 1) {
+				token->value = estrndup(start, YYCURSOR - start - 1);
+				token->len = YYCURSOR - start - 1;
+
 				int k, ch = s->active_char;
 				for (k = 0; k < (token->len - 1); k++) {
 					if (token->value[k] == '\n') {
@@ -543,10 +549,20 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 						ch++;
 					}
 				}
+
 				s->active_char = ch;
+			} else if (token->opcode == XX_T_COMMENT) {
+				start++;
+				token->value = estrndup(start, YYCURSOR - start - 1);
+				token->len = YYCURSOR - start - 1;
 			}
-			efree(token->value);
-			token->len = 0;
+
+			if (token->opcode == XX_T_IGNORE) {
+				// Ignore data for C comments
+				efree(token->value);
+				token->len = 0;
+			}
+
 			return 0;
 		}
 
@@ -636,12 +652,7 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 				}
 			}
 
-			/* This is hack */
-			if ((token->len == 1 && (!memcmp(token->value, "_", sizeof("_")-1)))
-				|| (token->len == 2 && (!memcmp(token->value, "__", sizeof("__")-1)))
-				|| (token->len == 3 && (!memcmp(token->value, "___", sizeof("___")-1)))
-				|| (token->len == 4 && (!memcmp(token->value, "____", sizeof("____")-1)))
-				) {
+			if (strspn(token->value, "_") == token->len) {
 				token->opcode = XX_T_IDENTIFIER;
 				return 0;
 			}
@@ -837,6 +848,12 @@ int xx_get_token(xx_scanner_state *s, xx_scanner_token *token) {
 		}
 
 		"!=" {
+			s->active_char += 2;
+			token->opcode = XX_T_NOTEQUALS;
+			return 0;
+		}
+
+		"<>" {
 			s->active_char += 2;
 			token->opcode = XX_T_NOTEQUALS;
 			return 0;

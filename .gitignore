@@ -8,6 +8,8 @@
 *.o
 *.lo
 *.la
+*.profraw
+
 .deps
 .libs
 acinclude.m4
@@ -24,6 +26,7 @@ config.status
 config.sub
 configure
 configure.in
+configure.ac
 /include
 install-sh
 libtool
@@ -39,14 +42,13 @@ run-tests.php
 php_test_results_*
 
 # Parser files
-parser/lemon
-parser/scanner.c
-parser/parser.c
-parser/parser.php5.c
-parser/parser.php5.h
-parser/parser.php5.out
-parser/parser.php7.c
-parser/parser.php7.h
-parser/parser.php7.out
+/parser/lemon
+/parser/parser.c
+/parser/scanner.c
+/parser/zephir.c
+/parser/zephir.h
+/parser/zephir.out
 
 release
+lcov.info
+/coverage

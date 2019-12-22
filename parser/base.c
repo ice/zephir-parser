@@ -1,14 +1,12 @@
-
-/*
-  +--------------------------------------------------------------------------+
-  | Zephir Parser                                                            |
-  | Copyright (c) 2013-present Zephir Team (https://zephir-lang.com/)        |
-  |                                                                          |
-  | This source file is subject the MIT license, that is bundled with this   |
-  | package in the file LICENSE, and is available through the world-wide-web |
-  | at the following url: http://zephir-lang.com/license.html                |
-  +--------------------------------------------------------------------------+
-*/
+/* base.c
+ *
+ * This file is part of the Zephir Parser.
+ *
+ * (c) Zephir Team <team@zephir-lang.com>
+ *
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
 
 const xx_token_names xx_tokens[] =
 {
@@ -65,7 +63,7 @@ static void xx_parse_with_token(void* xx_parser, int opcode, int parsercode, xx_
 }
 
 /**
- * Parses a programm and returning an intermediate array representation
+ * Parses a program and returning an intermediate array representation
  */
 void xx_parse_program(zval *return_value, char *program, size_t program_length, char *file_path, zval *error_msg) {
 
@@ -79,7 +77,8 @@ void xx_parse_program(zval *return_value, char *program, size_t program_length, 
 	/**
 	 * Check if the program has any length
 	 */
-	if (program_length < 2) {
+	if (program_length < 2 || is_empty(program)) {
+		array_init(return_value);
 		return;
 	}
 
@@ -93,11 +92,7 @@ void xx_parse_program(zval *return_value, char *program, size_t program_length, 
 
 	parser_status->status = XX_PARSING_OK;
 	parser_status->scanner_state = state;
-#if PHP_VERSION_ID < 70000
-	parser_status->ret = NULL;
-#else
 	ZVAL_UNDEF(&parser_status->ret);
-#endif
 	parser_status->token = &token;
 	parser_status->syntax_error = NULL;
 	parser_status->number_brackets = 0;
@@ -105,8 +100,9 @@ void xx_parse_program(zval *return_value, char *program, size_t program_length, 
 	/**
 	 * Initialize the scanner state
 	 */
+	state->bufsiz = program_length;
 	state->active_token = 0;
-	state->start = program;
+	state->cursor = program;
 	state->start_length = 0;
 	state->active_file = file_path;
 	state->active_line = 1;
@@ -116,15 +112,14 @@ void xx_parse_program(zval *return_value, char *program, size_t program_length, 
 	state->method_line = 0;
 	state->method_char = 0;
 
-	state->end = state->start;
+	state->limit = state->cursor;
 
 	token.value = NULL;
 
 	while (0 <= (scanner_status = xx_get_token(state, &token))) {
 
 		state->active_token = token.opcode;
-
-		state->start_length = (program + program_length - state->start);
+		state->start_length = (program + program_length - state->cursor);
 
 		switch (token.opcode) {
 			case XX_T_IGNORE:
@@ -528,21 +523,17 @@ void xx_parse_program(zval *return_value, char *program, size_t program_length, 
 			default:
 				parser_status->status = XX_PARSING_FAILED;
 				if (error_msg && Z_TYPE_P(error_msg) != IS_ARRAY) {
-					int length = (48 + strlen(file_path));
+					size_t length = (48 + strlen(file_path));
 					error = emalloc(sizeof(char) * length);
 					snprintf(error, length, "Scanner: unknown opcode %d on in %s line %d", token.opcode, file_path, state->active_line);
 
 					array_init(error_msg);
-#if PHP_VERSION_ID >= 70000
+
 					add_assoc_string(error_msg, "type", "error");
 					add_assoc_string(error_msg, "message", error);
 					add_assoc_string(error_msg, "file", state->active_file);
 					efree(error);
-#else
-					add_assoc_string(error_msg, "type", "error", 1);
-					add_assoc_string(error_msg, "message", error, 0);
-					add_assoc_string(error_msg, "file", state->active_file, 1);
-#endif
+
 					add_assoc_long(error_msg, "line", state->active_line);
 					add_assoc_long(error_msg, "char", state->active_char);
 				}
@@ -554,32 +545,28 @@ void xx_parse_program(zval *return_value, char *program, size_t program_length, 
 			break;
 		}
 
-		state->end = state->start;
+		state->limit = state->cursor;
 	}
 
 	if (status != FAILURE) {
 		switch (scanner_status) {
 			case XX_SCANNER_RETCODE_ERR:
 			case XX_SCANNER_RETCODE_IMPOSSIBLE:
-				if (error_msg && Z_TYPE_P(error_msg) == IS_NULL) {
+				if (error_msg && Z_TYPE_P(error_msg) != IS_ARRAY) {
 					error = emalloc(sizeof(char) * 1024);
-					if (state->start) {
-						snprintf(error, 1024, "Scanner error: %d %s", scanner_status, state->start);
+					if (state->cursor) {
+						snprintf(error, 1024, "Scanner error: %d %s", scanner_status, state->cursor);
 					} else {
 						snprintf(error, 1024, "Scanner error: %d", scanner_status);
 					}
 
 					array_init(error_msg);
-#if PHP_VERSION_ID >= 70000
+
 					add_assoc_string(error_msg, "type", "error");
 					add_assoc_string(error_msg, "message", error);
 					add_assoc_string(error_msg, "file", state->active_file);
 					efree(error);
-#else
-					add_assoc_string(error_msg, "type", "error", 1);
-					add_assoc_string(error_msg, "message", error, 0);
-					add_assoc_string(error_msg, "file", state->active_file, 1);
-#endif
+
 					add_assoc_long(error_msg, "line", state->active_line);
 					add_assoc_long(error_msg, "char", state->active_char);
 					status = FAILURE;
@@ -591,51 +578,36 @@ void xx_parse_program(zval *return_value, char *program, size_t program_length, 
 	}
 
 	state->active_token = 0;
-	state->start = NULL;
+	state->cursor = NULL;
 
 	if (parser_status->status != XX_PARSING_OK) {
 		status = FAILURE;
 		if (parser_status->syntax_error && error_msg && Z_TYPE_P(error_msg) != IS_ARRAY) {
 			array_init(error_msg);
-#if PHP_VERSION_ID >= 70000
 			add_assoc_string(error_msg, "type", "error");
 			add_assoc_string(error_msg, "message", parser_status->syntax_error);
 			add_assoc_string(error_msg, "file", state->active_file);
 			efree(parser_status->syntax_error);
-#else
-			add_assoc_string(error_msg, "type", "error", 1);
-			add_assoc_string(error_msg, "message", parser_status->syntax_error, 0);
-			add_assoc_string(error_msg, "file", state->active_file, 1);
-#endif
+
 			add_assoc_long(error_msg, "line", state->active_line);
 			add_assoc_long(error_msg, "char", state->active_char);
 
 			parser_status->syntax_error = NULL;
 		}
 		else if (error_msg && Z_TYPE_P(error_msg) != IS_ARRAY) {
-#if PHP_VERSION_ID >= 70000
 			assert(Z_TYPE(parser_status->ret) == IS_ARRAY);
-			ZVAL_ZVAL(error_msg, &parser_status->ret, 1, 1);
-#else
-			assert(Z_TYPE_P(parser_status->ret) == IS_ARRAY);
-			ZVAL_ZVAL(error_msg, parser_status->ret, 1, 1);
-#endif
+			ZVAL_COPY_VALUE(error_msg, &parser_status->ret);
 		}
 	}
 
 	if (status != FAILURE) {
 		if (parser_status->status == XX_PARSING_OK) {
-#if PHP_VERSION_ID >= 70000
-			ZVAL_ZVAL(return_value, &parser_status->ret, 1, 1);
-#else
-			if (parser_status->ret) {
-				ZVAL_ZVAL(return_value, parser_status->ret, 0, 0);
-				ZVAL_NULL(parser_status->ret);
-				zval_ptr_dtor(&parser_status->ret);
-			} else {
+			// In case the `program' contained only XX_T_IGNORE
+			if (Z_TYPE_P(&parser_status->ret) == IS_UNDEF) {
 				array_init(return_value);
+			} else {
+				ZVAL_ZVAL(return_value, &parser_status->ret, 1, 1);
 			}
-#endif
 		}
 	}
 

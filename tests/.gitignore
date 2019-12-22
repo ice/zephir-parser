@@ -1,8 +1,7 @@
 *.sh
-!ci/run-tests.sh
-!ci/after-failure.sh
 *.out
 *.exp
 *.diff
 *.php
 *.log
+*.mem
