@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 phpize
+chmod +x configure parser/lemon
 ./configure
 make
 sudo make install
